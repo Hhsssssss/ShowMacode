@@ -24,7 +24,7 @@ struct serverNode {
 
     // 打印服务器节点信息
     void serverPrint() {
-        cout << cpuA << " " << cpuB << " " << mermoryA << " " << mermoryB << " " << purCost << powerCost << endl;
+        cout << cpuA << " " << cpuB << " " << mermoryA << " " << mermoryB << " " << purCost << " " << powerCost << endl;
     }
 };
 
@@ -47,10 +47,10 @@ struct vmNode {
     }
 };
 
-// 存储服务器型号对应的信息
+// 存储服务器型号对应的信息<key:型号，value:服务器node>
 unordered_map<string, serverNode> serverMap;
 
-// 存储虚拟机型号对应的信息
+// 存储虚拟机型号对应的信息<key:型号，value:虚拟机node>
 unordered_map<string, vmNode> vmMap;
 
 // 存储用户请求的创建和删除
@@ -61,61 +61,72 @@ long long totalCost, sumPurCost, sumPowerCost;
 
 // 输入服务器型号对应的信息
 void inputServerInfo(string serverType, string cpuNum, string mermorySize, string inputPurCost, string inputPowerCost) {
-    string temp_serverType  = serverType.substr(1, serverType.find(',') - 2);
-    int temp_cpuNum = stoi(cpuNum.substr(0, cpuNum.find(',') - 1));
-    int temp_mermorySize = stoi(mermorySize.substr(0, mermorySize.find(',') - 1));
-    int temp_inputPurCost = stoi(inputPurCost.substr(0, inputPurCost.find(',') - 1));
-    int temp_inputPowerCost = stoi(inputPowerCost.substr(0, inputPowerCost.find(')') - 1));
+    string temp_serverType  = serverType.substr(1, serverType.find(',') - 1);
+    int temp_cpuNum = stoi(cpuNum.substr(0, cpuNum.find(',')));
+    int temp_mermorySize = stoi(mermorySize.substr(0, mermorySize.find(',')));
+    int temp_inputPurCost = stoi(inputPurCost.substr(0, inputPurCost.find(',')));
+    int temp_inputPowerCost = stoi(inputPowerCost.substr(0, inputPowerCost.find(')')));
     serverMap[temp_serverType] = serverNode(temp_cpuNum, temp_mermorySize, temp_inputPurCost, temp_inputPowerCost);
 }
 
 // 输入虚拟机型号对应的信息
 void inputVMInfo(string vmType, string cpuNum, string mermorySize, string isDouble) {
-    string temp_vmType = vmType.substr(1, vmType.find(',') - 2);
-    int temp_cpuNum = stoi(cpuNum.substr(0, cpuNum.find(',') - 1));
-    int temp_mermorySize = stoi(mermorySize.substr(0, mermorySize.find(',' - 1)));
+    string temp_vmType = vmType.substr(1, vmType.find(',') - 1);
+    int temp_cpuNum = stoi(cpuNum.substr(0, cpuNum.find(',')));
+    int temp_mermorySize = stoi(mermorySize.substr(0, mermorySize.find(',')));
     int temp_isDouble = isDouble[0] - '0';
     vmMap[temp_vmType] = vmNode(temp_cpuNum, temp_mermorySize, temp_isDouble);
 }
 
-// 输入用户请求储存
+// 储存输入用户创建请求
 void inputRequest(string operate, string vmType, string vmID) {
-    string temp_operate = operate.substr(1, operate.find(',') - 2);
-    string  temp_vmType = vmType.substr(0, vmType.find(',') - 1);
-    string temp_vmID = vmID.substr(0, vmID.find(',') - 1);
+    string temp_operate = operate.substr(1, operate.find(',') - 1);
+    string  temp_vmType = vmType.substr(0, vmType.find(','));
+    string temp_vmID = vmID.substr(0, vmID.find(')'));
     requestList.push_back({temp_operate, temp_vmType, temp_vmID});
 }
+
+// 储存输入用户删除请求
+void inputRequest(string operate, string vmID) {
+    string temp_operate = operate.substr(1, operate.find(',') - 1);
+    string temp_vmID = vmID.substr(0, vmID.find(')'));
+    requestList.push_back({temp_operate, temp_vmID});
+}
+
 int main() {
     
     auto start_time = system_clock::now();
 
-    // 加速Cin的输入输出流
-    // ios::sync_with_stdio(false);
-    // cin.tie(0);
+    // 加速cin的输入输出流
+    ios::sync_with_stdio(false);
+    cin.tie(0);
 
     // 练习赛重定向到文件输入
 #ifdef TEST
-    const string filePath1 = "train_data/trianing-1.txt";
-    const string filePath2 = "train_data/trianing-2.txt";
-    freopen(filePath1.c_str(), "r", stdin);
-#endif
 
+    const string filePath1 = "CPP/train_data/training-1.txt";
+    const string filePath2 = "CPP/train_data/training-2.txt";
+    freopen(filePath1.c_str(), "r", stdin);
+
+#endif
+    
     // 读取服务器输入
     int serverNum;
     string serverType, cpuNum, mermorySize, inputPurCost, inputPowerCost;
     cin >> serverNum;
 
-    cin.get();
     for(int i = 0; i < serverNum; i++) {
         cin >> serverType >> cpuNum >> mermorySize >> inputPurCost >> inputPowerCost;
         inputServerInfo(serverType, cpuNum, mermorySize, inputPurCost, inputPowerCost);
     }
+
+    cin.get();
     
     // 读取虚拟机输入
     int vmNum; 
     string vmType, isDouble;
     cin >> vmNum;
-    cin.get();
+
     for(int i = 0; i < vmNum; i++) {
         cin >> vmType >> cpuNum >> mermorySize >> isDouble;
         inputVMInfo(vmType, cpuNum, mermorySize, isDouble);
@@ -125,26 +136,35 @@ int main() {
     int dayNum, reqNum;
     string operate, vmID;
     cin >> dayNum;
-    cin.get();
+
     for(int day = 0; day < dayNum; day++) {
         cin >> reqNum;
-        cin.get();
         for(int req = 0; req < reqNum; req++) {
-            cin >> operate >> vmType >> vmID;
-            inputRequest(operate, vmType, vmID);
+            cin >> operate;
+            if(operate.substr(1, 3) == "add"){
+                cin >> vmType >> vmID;
+                inputRequest(operate, vmType, vmID);
+            }
+            else if (operate.substr(1, 3) == "del") {
+                cin >> vmID;
+                inputRequest(operate, vmID);
+            }
         }
     }
 
+    // 练习赛重定向到文件输出中间数据
 #ifdef TEST
-    fclose(stdin);
-    const string outputPath = "temp_data/temp_output.txt";
-    freopen(outputPath.c_str(), "w", stdout);
+
+    const string outputPath1 = "CPP/temp_data/temp_output.txt";
+    freopen(outputPath1.c_str(), "w", stdout);
+
+    // 输出是否成功存储好输入的数据
     for(auto [type, node] : serverMap) {
-        cout << type;
+        cout << type << " ";
         node.serverPrint();
     }
     for(auto [type, node] : vmMap) {
-        cout << type;
+        cout << type << " ";
         node.vmPirnt();
     }
 
@@ -156,11 +176,18 @@ int main() {
     }
 #endif
 
+/*
+    // 练习赛重定向到文件输出最终结果
+#ifdef TEST
+
+    const string outputPath2 = "CPP/final_output.txt";
+    freopen(outputPath2.c_str(), "w", stdout);
+
+#endif
+*/
     // 计算程序所用时间
     auto end_time = system_clock::now();
     auto duration = duration_cast<microseconds>(end_time - start_time);
     cout << "用时 " << double(duration.count()) * microseconds::period::num / microseconds::period::den << " s" << endl;
     return 0;
 }
-
-//注：freopen暂时不起作用，明天换成C++输入输出流
